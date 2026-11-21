@@ -4,6 +4,10 @@
 
 A zero-backend, zero-API-trust explorer, raw calldata unpacker, attention velocity radar, and validator seat terminal for **[Buzzchain](https://testnet.buzzchain.xyz/)** (`@buzzchain_io`) running directly against **Ethereum Sepolia L1**.
 
+![BuzzPulse Live L1 Dashboard](assets/preview-dashboard.png)
+
+![Trustless L1 Calldata Unpacker & 4/4 Cryptographic Verification](assets/preview-calldata.png)
+
 ---
 
 ## Why L1-Direct (Zero Relayer API)?
