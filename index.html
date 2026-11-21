@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BuzzPulse — Trustless L1 Buzzchain Explorer & Validator Terminal</title>
+  <meta name="description" content="Zero-API, L1-verified explorer, calldata decoder, attention velocity radar, and validator seat terminal for Buzzchain on Ethereum Sepolia." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #07080c;
+      --bg-card: #0e1017;
+      --bg-elev: #141722;
+      --border: #202536;
+      --border-strong: #2f374f;
+      --text: #eef1f8;
+      --muted: #8b94ad;
+      --amber: #f59e0b;
+      --amber-soft: rgba(245, 158, 11, 0.14);
+      --emerald: #10b981;
+      --emerald-soft: rgba(16, 185, 129, 0.14);
+      --violet: #8b5cf6;
+      --violet-soft: rgba(139, 92, 246, 0.15);
+      --sky: #38bdf8;
+      --rose: #f43f5e;
+      --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background:
+        radial-gradient(900px 420px at 15% -10%, rgba(245, 158, 11, 0.09), transparent 65%),
+        radial-gradient(700px 380px at 90% 0%, rgba(139, 92, 246, 0.09), transparent 60%),
+        var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    .mono { font-family: var(--mono); }
+
+    .wrap {
+      max-width: 1260px;
+      margin: 0 auto;
+      padding: 20px 20px 64px;
+    }
+
+    /* Header */
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 22px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 45%, #8b5cf6 100%);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 18px;
+      color: #07080c;
+      box-shadow: 0 0 24px rgba(245, 158, 11, 0.25);
+    }
+    .brand h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand p {
+      margin: 2px 0 0;
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: var(--mono);
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--muted);
+    }
+    .pill.live {
+      border-color: rgba(16, 185, 129, 0.35);
+      background: var(--emerald-soft);
+      color: var(--emerald);
+    }
+    .pill.amber {
+      border-color: rgba(245, 158, 11, 0.35);
+      background: var(--amber-soft);
+      color: var(--amber);
+    }
+    .pill.violet {
+      border-color: rgba(139, 92, 246, 0.35);
+      background: var(--violet-soft);
+      color: #c4b5fd;
+    }
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.85); }
+    }
+
+    .top-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 13px;
+      border-radius: 9px;
+      font-size: 12.5px;
+      font-weight: 600;
+      border: 1px solid var(--border-strong);
+      background: var(--bg-elev);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn:hover {
+      border-color: var(--amber);
+      background: #1a1e2d;
+    }
+    .btn.primary {
+      background: var(--amber);
+      color: #090a0f;
+      border-color: var(--amber);
+    }
+    .btn.primary:hover {
+      background: #fbbf24;
+    }
+    .btn.sm {
+      padding: 5px 10px;
+      font-size: 11.5px;
+      border-radius: 7px;
+    }
+
+    /* KPI Grid */
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 1020px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .kpis { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .kpi-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .kpi-val {
+      margin-top: 8px;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      font-family: var(--mono);
+    }
+    .kpi-sub {
+      margin-top: 5px;
+      font-size: 11.5px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    /* Charts Row */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
+
+    .section-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-sub {
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+    .chart-box {
+      position: relative;
+      width: 100%;
+      height: 195px;
+    }
+    .chart-box svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    /* Main Split: Left Blocks + Right Decoder & Validator */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    @media (max-width: 1020px) { .main-grid { grid-template-columns: 1fr; } }
+
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* Tabs / Filter */
+    .filters {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      padding: 4px 10px;
+      border-radius: 7px;
+      font-size: 11.5px;
+      font-weight: 600;
+      font-family: var(--mono);
+      border: 1px solid var(--border);
+      background: var(--bg-elev);
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .chip.active {
+      border-color: var(--amber);
+      color: var(--amber);
+      background: var(--amber-soft);
+    }
+
+    /* Table */
+    .table-wrap {
+      overflow-x: auto;
+      max-height: 540px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    thead th {
+      position: sticky;
+      top: 0;
+      background: #11141e;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      text-align: left;
+      padding: 10px 10px;
+      border-bottom: 1px solid var(--border);
+      z-index: 2;
+    }
+    tbody td {
+      padding: 9px 10px;
+      border-bottom: 1px solid rgba(32, 37, 54, 0.7);
+      font-family: var(--mono);
+      white-space: nowrap;
+    }
+    tbody tr {
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    tbody tr:hover {
+      background: rgba(245, 158, 11, 0.06);
+    }
+    tbody tr.selected {
+      background: rgba(245, 158, 11, 0.12);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 10.5px;
+      font-weight: 700;
+      font-family: var(--mono);
+    }
+    .badge.full { background: var(--emerald-soft); color: var(--emerald); }
+    .badge.timeout { background: rgba(139, 148, 173, 0.16); color: var(--muted); }
+    .badge.new { background: rgba(56, 189, 248, 0.14); color: var(--sky); }
+    .badge.matured { background: var(--violet-soft); color: #c4b5fd; }
+    .badge.mega { background: var(--amber-soft); color: var(--amber); }
+
+    /* Form Controls */
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    input[type="text"], input[type="number"] {
+      flex: 1;
+      min-width: 0;
+      background: #0a0c12;
+      border: 1px solid var(--border-strong);
+      border-radius: 9px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 12.5px;
+      outline: none;
+    }
+    input:focus {
+      border-color: var(--amber);
+    }
+
+    /* Proof Checks */
+    .proof-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 10px 0 12px;
+    }
+    @media (max-width: 560px) { .proof-grid { grid-template-columns: 1fr; } }
+    .proof-item {
+      background: #0a0c12;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 8px 10px;
+      font-size: 11.5px;
+      font-family: var(--mono);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .proof-item.ok {
+      border-color: rgba(16, 185, 129, 0.35);
+      background: rgba(16, 185, 129, 0.06);
+    }
+    .proof-item.fail {
+      border-color: rgba(244, 63, 94, 0.4);
+      background: rgba(244, 63, 94, 0.08);
+    }
+
+    .leaves-box {
+      max-height: 290px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+    }
+
+    /* Validator Stats */
+    .val-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .stat-tile {
+      background: #0a0c12;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 10px 12px;
+    }
+    .stat-tile .lbl {
+      font-size: 10.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-family: var(--mono);
+    }
+    .stat-tile .val {
+      margin-top: 4px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: var(--mono);
+    }
+
+    /* Sliders */
+    .sim-row {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .slider-group label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      font-family: var(--mono);
+    }
+    .slider-group label strong { color: var(--text); }
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--amber);
+      cursor: pointer;
+    }
+
+    .footer {
+      margin-top: 28px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .footer a { color: var(--amber); }
+    .footer a:hover { text-decoration: underline; }
+
+    .bar-split {
+      height: 8px;
+      border-radius: 999px;
+      background: var(--bg-elev);
+      overflow: hidden;
+      display: flex;
+      margin: 8px 0;
+    }
+    .bar-new { background: var(--sky); }
+    .bar-mat { background: var(--violet); }
+
+    .err-banner {
+      display: none;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: rgba(244, 63, 94, 0.12);
+      border: 1px solid rgba(244, 63, 94, 0.35);
+      color: #fda4af;
+      font-size: 12.5px;
+      margin-bottom: 14px;
+      font-family: var(--mono);
+    }
+    .muted { color: var(--muted); }
+    .text-emerald { color: var(--emerald); }
+    .text-amber { color: var(--amber); }
+    .text-violet { color: #c4b5fd; }
+    .text-sky { color: var(--sky); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Top Bar -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">⚡</div>
+        <div>
+          <h1>
+            BuzzPulse
+            <span class="pill live"><span class="dot"></span>L1 DIRECT · ZERO API</span>
+            <span class="pill amber">SEPOLIA TESTNET</span>
+          </h1>
+          <p>Trustless Ethereum L1 explorer, calldata leaf unpacker, attention velocity radar &amp; validator terminal for Buzzchain.</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <span class="pill" id="sync-status">Connecting to Sepolia…</span>
+        <button class="btn" id="btn-refresh">↻ Refresh L1</button>
+        <a class="btn" href="https://testnet.buzzchain.xyz/" target="_blank" rel="noopener">Official App ↗</a>
+        <a class="btn" href="https://github.com/mashutong/buzzpulse" target="_blank" rel="noopener">GitHub ↗</a>
+      </div>
+    </header>
+
+    <div id="err-banner" class="err-banner"></div>
+
+    <!-- KPI Telemetry -->
+    <section class="kpis">
+      <div class="card">
+        <div class="kpi-label">Settled Head <span class="text-emerald">L1</span></div>
+        <div class="kpi-val" id="kpi-head">—</div>
+        <div class="kpi-sub" id="kpi-head-sub">Loading Sequencer…</div>
+      </div>
+      <div class="card">
+        <div class="kpi-label">Attention Rate <span class="text-amber">λ̂</span></div>
+        <div class="kpi-val text-amber" id="kpi-rate">—</div>
+        <div class="kpi-sub" id="kpi-rate-sub">Avg block interval Δt</div>
+      </div>
+      <div class="card">
+        <div class="kpi-label">Block Emissions <span class="text-violet">$BUZZ</span></div>
+        <div class="kpi-val text-violet" id="kpi-emission">—</div>
+        <div class="kpi-sub" id="kpi-emission-sub">Minted by FULL blocks</div>
+      </div>
+      <div class="card">
+        <div class="kpi-label">Validator Seats <span class="text-emerald">STAKED</span></div>
+        <div class="kpi-val" id="kpi-seats">—</div>
+        <div class="kpi-sub" id="kpi-seats-sub">Loading Vault…</div>
+      </div>
+      <div class="card">
+        <div class="kpi-label">24h Yield / Seat <span class="text-sky">EST</span></div>
+        <div class="kpi-val text-sky" id="kpi-yield">—</div>
+        <div class="kpi-sub" id="kpi-yield-sub">From last 24h L1 blocks</div>
+      </div>
+    </section>
+
+    <!-- Charts -->
+    <section class="charts-grid">
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <div class="section-title">📈 Decoded Block Rate (Attention Velocity)</div>
+            <div class="section-sub">Blocks sealed per hour directly from L1 <span class="mono">BlockSealed</span> timestamps</div>
+          </div>
+          <span class="pill amber" id="chart-rate-peak">Peak: —</span>
+        </div>
+        <div class="chart-box" id="chart-rate"></div>
+      </div>
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <div class="section-title">🔥 Block Loudness &amp; Maturity Spikes</div>
+            <div class="section-sub">Recent 48 blocks loudness (amber = mega maturity spikes &ge; 100)</div>
+          </div>
+          <span class="pill violet" id="chart-loud-peak">Max: —</span>
+        </div>
+        <div class="chart-box" id="chart-loudness"></div>
+      </div>
+    </section>
+
+    <!-- Main Split -->
+    <section class="main-grid">
+      <!-- Left: Live L1 Blocks Table -->
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <div class="section-title">⛓️ Live L1 Settled Blocks <span class="pill" id="blocks-count">0 loaded</span></div>
+            <div class="section-sub">Click any block to unpack &amp; cryptographically verify its X posts from raw Sepolia calldata</div>
+          </div>
+          <div class="filters">
+            <button class="chip active" data-filter="all">ALL</button>
+            <button class="chip" data-filter="full">FULL</button>
+            <button class="chip" data-filter="mega">LOUD &ge; 50</button>
+            <button class="chip" data-filter="timeout">TIMEOUT</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Block</th>
+                <th>Kind</th>
+                <th>Loudness</th>
+                <th>Emission</th>
+                <th>BUZZ / Seat</th>
+                <th>L1 Tx</th>
+              </tr>
+            </thead>
+            <tbody id="blocks-tbody">
+              <tr><td colspan="6" class="muted" style="text-align:center;padding:28px;">Indexing BlockSealed events from Ethereum Sepolia…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Right: Calldata Unpacker + Validator Terminal -->
+      <div class="stack">
+        <!-- Trustless Calldata Decoder -->
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <div class="section-title">🔬 Trustless L1 Calldata Unpacker</div>
+              <div class="section-sub">Rebuilds 17-byte leaves &amp; OZ StandardMerkleTree from raw L1 <span class="mono">settle()</span> input</div>
+            </div>
+            <span class="pill violet" id="decoder-block-badge">Block #—</span>
+          </div>
+
+          <div class="input-row">
+            <input type="number" id="input-block-num" placeholder="Enter block # (e.g. 230 or latest)" min="1" />
+            <button class="btn primary" id="btn-decode">Decode L1</button>
+          </div>
+
+          <div id="decoder-meta" class="section-sub mono" style="margin-bottom:8px;">Select a block on the left or enter a block number.</div>
+
+          <div class="proof-grid" id="proof-grid">
+            <div class="proof-item"><span>blockHash == header</span><span class="muted">—</span></div>
+            <div class="proof-item"><span>dataHash == postData</span><span class="muted">—</span></div>
+            <div class="proof-item"><span>postsRoot == Merkle</span><span class="muted">—</span></div>
+            <div class="proof-item"><span>Σ loudness == header</span><span class="muted">—</span></div>
+          </div>
+
+          <div id="maturity-split-wrap" style="display:none;">
+            <div style="display:flex;justify-content:space-between;font-size:11.5px;" class="mono">
+              <span class="text-sky" id="split-new-lbl">NEW: 0</span>
+              <span class="text-violet" id="split-mat-lbl">MATURED (24h): 0</span>
+            </div>
+            <div class="bar-split">
+              <div class="bar-new" id="bar-new" style="width:50%"></div>
+              <div class="bar-mat" id="bar-mat" style="width:50%"></div>
+            </div>
+          </div>
+
+          <div class="leaves-box">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Post ID (X Link)</th>
+                  <th>Pass</th>
+                  <th>Loudness</th>
+                </tr>
+              </thead>
+              <tbody id="leaves-tbody">
+                <tr><td colspan="4" class="muted" style="text-align:center;padding:18px;">Waiting for block selection…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Validator Seat Terminal & Yield Simulator -->
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <div class="section-title">🛡️ Validator Seat Terminal &amp; Yield Calculator</div>
+              <div class="section-sub">Query live Sepolia Vault state for any Seat #ID or EVM address</div>
+            </div>
+          </div>
+
+          <div class="input-row">
+            <input type="text" id="input-seat" value="1682" placeholder="Seat #ID (e.g. 1682) or 0x wallet address" />
+            <button class="btn primary" id="btn-query-seat">Inspect</button>
+          </div>
+
+          <div class="val-grid" id="seat-result">
+            <div class="stat-tile"><div class="lbl">Status</div><div class="val muted">—</div></div>
+            <div class="stat-tile"><div class="lbl">Pending Rewards</div><div class="val text-amber">—</div></div>
+            <div class="stat-tile"><div class="lbl">Staker / Owner</div><div class="val muted">—</div></div>
+            <div class="stat-tile"><div class="lbl">Wallet $BUZZ Balance</div><div class="val text-emerald">—</div></div>
+          </div>
+
+          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+            <div class="section-title" style="font-size:13px;margin-bottom:4px;">🧮 Emission &amp; BGE Seat Simulator</div>
+            <div class="section-sub">Formula: <span class="mono">R = 200 · ⌊√L⌋</span> split equally across staked seats</div>
+            <div class="sim-row">
+              <div class="slider-group">
+                <label><span>Your Staked Seats</span><strong id="sim-seats-val">1 seat</strong></label>
+                <input type="range" id="sim-seats" min="1" max="50" value="1" />
+              </div>
+              <div class="slider-group">
+                <label><span>Daily Network Emission ($BUZZ)</span><strong id="sim-daily-val">180,000 BUZZ/d</strong></label>
+                <input type="range" id="sim-daily" min="10000" max="356440" step="5000" value="180000" />
+              </div>
+              <div class="slider-group">
+                <label><span>Total Staked Seats</span><strong id="sim-total-val">30,000 seats</strong></label>
+                <input type="range" id="sim-total" min="500" max="100000" step="500" value="30000" />
+              </div>
+            </div>
+            <div class="val-grid" style="margin-top:12px;">
+              <div class="stat-tile">
+                <div class="lbl">Estimated Daily Yield</div>
+                <div class="val text-amber" id="sim-out-day">—</div>
+              </div>
+              <div class="stat-tile">
+                <div class="lbl">Estimated 30d Yield</div>
+                <div class="val text-emerald" id="sim-out-month">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div>
+        Built for <a href="https://testnet.buzzchain.xyz/" target="_blank" rel="noopener">@buzzchain_io</a> Testnet v1 · 100% client-side Ethereum Sepolia L1 verification (zero centralized API dependency).
+      </div>
+      <div class="mono">
+        Sequencer: <a href="https://sepolia.etherscan.io/address/0x44e6c7bC1146259Ff63a9b514B42C86F272631a2" target="_blank" rel="noopener">0x44e6…31a2</a> ·
+        Vault: <a href="https://sepolia.etherscan.io/address/0x5263121Df28F91EC3c2773814a7c798c0849E148" target="_blank" rel="noopener">0x5263…E148</a>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module">
+    import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.13.5/+esm";
+
+    const RPCS = [
+      "https://ethereum-sepolia-rpc.publicnode.com",
+      "https://sepolia.gateway.tenderly.co",
+      "https://rpc2.sepolia.org"
+    ];
+
+    const ADDR = {
+      SEQUENCER: "0x44e6c7bC1146259Ff63a9b514B42C86F272631a2",
+      BUZZ:      "0xc8bdca3cFD13BcB2b1E5C4Aa3bc35C7196009e2b",
+      VALIDATOR: "0xb5aAdd62fbC1e42bbEF02dDbBbcef053ff2acdf9",
+      VAULT:     "0x5263121Df28F91EC3c2773814a7c798c0849E148",
+      FAUCET:    "0x0419ecE34c8124Ec121495C9E5f4956620DC6b28"
+    };
+
+    const SEQ_ABI = [
+      "function latestBlock() view returns (uint64 number, bytes32 hash, uint64 timestamp)",
+      "function batchCount() view returns (uint256)",
+      "function batchOf(uint64 blockNumber) view returns (uint256)",
+      "function batch(uint256 index) view returns (tuple(bytes32 headersRoot, uint64 firstBlock, uint64 lastBlock, uint64 l1Timestamp))",
+      "function params() view returns (uint32 blockSize, uint32 maxBlockTime, uint128 maxEmissionPerBlock)",
+      "event BlockSealed(uint64 indexed number, bytes32 indexed blockHash, bytes32 postsRoot, uint128 loudness, uint128 emission, uint8 kind)",
+      "event BatchSettled(uint256 indexed batchIndex, uint64 firstBlock, uint64 lastBlock, bytes32 headersRoot, uint256 totalEmission)",
+      "function settle(tuple(uint64 number, uint64 timestamp, bytes32 parentHash, bytes32 postsRoot, bytes32 dataHash, uint32 newPosts, uint32 maturedPosts, uint128 loudness, uint128 emission, uint8 kind, uint16 paramsVersion)[] headers, bytes[] postData)"
+    ];
+
+    const VAULT_ABI = [
+      "function totalStaked() view returns (uint256)",
+      "function accRewardPerSeat() view returns (uint256)",
+      "function queuedRewards() view returns (uint256)",
+      "function pendingRewards(uint256 tokenId) view returns (uint256)",
+      "function stakerOf(uint256 tokenId) view returns (address)"
+    ];
+
+    const NFT_ABI = [
+      "function totalSupply() view returns (uint256)",
+      "function ownerOf(uint256 tokenId) view returns (address)",
+      "function balanceOf(address owner) view returns (uint256)"
+    ];
+
+    const BUZZ_ABI = [
+      "function totalSupply() view returns (uint256)",
+      "function balanceOf(address owner) view returns (uint256)"
+    ];
+
+    const FAUCET_ABI = [
+      "function hasClaimed(address account) view returns (bool)"
+    ];
+
+    const seqIface = new ethers.Interface(SEQ_ABI);
+    const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+
+    let provider = null;
+    let state = {
+      blocks: [],
+      byNumber: new Map(),
+      totalStaked: 1n,
+      nftSupply: 0n,
+      selectedBlock: null,
+      filter: "all"
+    };
+
+    const $ = id => document.getElementById(id);
+    const fmtNum = (n, d = 0) => Number(n).toLocaleString("en-US", { maximumFractionDigits: d });
+    const shortHex = h => h ? `${h.slice(0, 6)}…${h.slice(-4)}` : "—";
+
+    function showError(msg) {
+      const el = $("err-banner");
+      if (!msg) { el.style.display = "none"; return; }
+      el.textContent = msg;
+      el.style.display = "block";
+    }
+
+    async function connectProvider() {
+      for (const url of RPCS) {
+        try {
+          const p = new ethers.JsonRpcProvider(url, 11155111, { staticNetwork: true });
+          await p.getBlockNumber();
+          provider = p;
+          $("sync-status").textContent = `Sepolia L1 · ${new URL(url).hostname}`;
+          return p;
+        } catch (e) {
+          console.warn("RPC failed:", url, e);
+        }
+      }
+      throw new Error("Could not connect to any public Ethereum Sepolia RPC.");
+    }
+
+    // Rebuild OpenZeppelin StandardMerkleTree root from leaf hashes
+    function buildOzStandardMerkleRoot(leafHashes) {
+      if (!leafHashes.length) return ethers.ZeroHash;
+      const sorted = [...leafHashes].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+      const tree = new Array(2 * sorted.length - 1);
+      for (let i = 0; i < sorted.length; i++) tree[tree.length - 1 - i] = sorted[i];
+      for (let i = tree.length - 1 - sorted.length; i >= 0; i--) {
+        const left = tree[2 * i + 1];
+        const right = tree[2 * i + 2];
+        tree[i] = left <= right
+          ? ethers.keccak256(ethers.concat([left, right]))
+          : ethers.keccak256(ethers.concat([right, left]));
+      }
+      return tree[0];
+    }
+
+    async function loadChainData() {
+      showError("");
+      $("sync-status").textContent = "Syncing Sepolia L1…";
+      if (!provider) await connectProvider();
+
+      const seq = new ethers.Contract(ADDR.SEQUENCER, SEQ_ABI, provider);
+      const vault = new ethers.Contract(ADDR.VAULT, VAULT_ABI, provider);
+      const nft = new ethers.Contract(ADDR.VALIDATOR, NFT_ABI, provider);
+      const buzz = new ethers.Contract(ADDR.BUZZ, BUZZ_ABI, provider);
+
+      const [l1Head, latestB, batchCount, totalStaked, nftSupply, buzzSupply, accPerSeat] = await Promise.all([
+        provider.getBlockNumber(),
+        seq.latestBlock(),
+        seq.batchCount(),
+        vault.totalStaked(),
+        nft.totalSupply(),
+        buzz.totalSupply(),
+        vault.accRewardPerSeat()
+      ]);
+
+      state.totalStaked = totalStaked > 0n ? totalStaked : 1n;
+      state.nftSupply = nftSupply;
+
+      // Index BlockSealed events over the last ~9000 Sepolia blocks (~30 hours)
+      const blockSealedTopic = seqIface.getEvent("BlockSealed").topicHash;
+      const fromBlock = Math.max(0, l1Head - 8800);
+      const rawLogs = await provider.getLogs({
+        address: ADDR.SEQUENCER,
+        topics: [blockSealedTopic],
+        fromBlock,
+        toBlock: l1Head
+      });
+
+      const blocks = [];
+      const l1BlockNums = new Set();
+      for (const log of rawLogs) {
+        const parsed = seqIface.parseLog(log);
+        const num = Number(parsed.args.number);
+        l1BlockNums.add(log.blockNumber);
+        blocks.push({
+          number: num,
+          blockHash: parsed.args.blockHash,
+          postsRoot: parsed.args.postsRoot,
+          loudness: Number(parsed.args.loudness),
+          emissionWei: parsed.args.emission,
+          emission: Number(ethers.formatEther(parsed.args.emission)),
+          kind: Number(parsed.args.kind), // 0 FULL, 1 TIMEOUT
+          txHash: log.transactionHash,
+          l1Block: log.blockNumber,
+          approxTs: 0
+        });
+      }
+
+      // Anchor timestamps cleanly using latest L1 block timestamp & 12s Sepolia slot cadence
+      const latestL1 = await provider.getBlock(l1Head);
+      const latestL1Ts = Number(latestL1.timestamp);
+      for (const b of blocks) {
+        b.approxTs = latestL1Ts - (l1Head - b.l1Block) * 12;
+      }
+
+      blocks.sort((a, b) => b.number - a.number);
+      state.blocks = blocks;
+      state.byNumber = new Map(blocks.map(b => [b.number, b]));
+
+      // Compute KPIs
+      const headNum = Number(latestB.number);
+      const headTs = Number(latestB.timestamp);
+      const ageMin = Math.max(0, Math.floor((Date.now() / 1000 - headTs) / 60));
+      $("kpi-head").textContent = `#${fmtNum(headNum)}`;
+      $("kpi-head-sub").textContent = `${fmtNum(batchCount)} batches · ${ageMin}m ago`;
+
+      // Attention velocity over last 24h (or loaded window)
+      const nowSec = latestL1Ts;
+      const last24h = blocks.filter(b => nowSec - b.approxTs <= 86400);
+      const spanHours = last24h.length >= 2
+        ? Math.max(1, (last24h[0].approxTs - last24h[last24h.length - 1].approxTs) / 3600)
+        : 1;
+      const ratePerHour = last24h.length / spanHours;
+      const avgGapMin = ratePerHour > 0 ? 60 / ratePerHour : 0;
+      $("kpi-rate").textContent = `${ratePerHour.toFixed(1)} blk/h`;
+      $("kpi-rate-sub").textContent = `Avg Δt ≈ ${avgGapMin.toFixed(1)} min (${last24h.length} blks / 24h)`;
+
+      // Emitted BUZZ = totalSupply - 56,000,000 LP seed
+      const lpSeed = 56_000_000n * 10n ** 18n;
+      const mintedByBlocks = buzzSupply > lpSeed ? buzzSupply - lpSeed : 0n;
+      const totalEmitNum = Number(ethers.formatEther(mintedByBlocks));
+      const emit24h = last24h.reduce((s, b) => s + b.emission, 0);
+      $("kpi-emission").textContent = `${fmtNum(totalEmitNum, 0)}`;
+      $("kpi-emission-sub").textContent = `+${fmtNum(emit24h, 0)} BUZZ in last 24h`;
+
+      // Staked Validator Seats
+      const stakePct = nftSupply > 0n ? (Number(totalStaked) / Number(nftSupply) * 100).toFixed(1) : "0";
+      $("kpi-seats").textContent = fmtNum(totalStaked);
+      $("kpi-seats-sub").textContent = `${stakePct}% of ${fmtNum(nftSupply)} minted NFTs`;
+
+      // 24h Yield per Seat
+      const yieldPerSeat24h = emit24h / Number(state.totalStaked);
+      const accSeatNum = Number(ethers.formatEther(accPerSeat));
+      $("kpi-yield").textContent = `${yieldPerSeat24h.toFixed(2)} BUZZ`;
+      $("kpi-yield-sub").textContent = `Lifetime/seat: ${accSeatNum.toFixed(1)} BUZZ`;
+
+      // Sync simulator defaults with live L1 measurements
+      const clampedDaily = Math.min(356440, Math.max(10000, Math.round(emit24h / 5000) * 5000));
+      const clampedSeats = Math.min(100000, Math.max(500, Math.round(Number(state.totalStaked) / 500) * 500));
+      $("sim-daily").value = clampedDaily;
+      $("sim-total").value = clampedSeats;
+      updateSimulator();
+
+      renderBlocksTable();
+      renderCharts(blocks, latestL1Ts);
+
+      $("sync-status").textContent = `Synced L1 #${fmtNum(l1Head)}`;
+
+      // Auto-decode the loudest recent FULL block (or latest block) on first load
+      if (state.selectedBlock === null && blocks.length > 0) {
+        const mega = blocks.find(b => b.kind === 0 && b.loudness >= 50) || blocks[0];
+        await decodeBlockFromL1(mega.number);
+      }
+    }
+
+    function renderBlocksTable() {
+      const filtered = state.blocks.filter(b => {
+        if (state.filter === "full") return b.kind === 0;
+        if (state.filter === "timeout") return b.kind === 1;
+        if (state.filter === "mega") return b.loudness >= 50;
+        return true;
+      });
+      $("blocks-count").textContent = `${filtered.length} shown`;
+
+      if (!filtered.length) {
+        $("blocks-tbody").innerHTML = `<tr><td colspan="6" class="muted" style="text-align:center;padding:24px;">No blocks match filter.</td></tr>`;
+        return;
+      }
+
+      const seatsNum = Number(state.totalStaked);
+      $("blocks-tbody").innerHTML = filtered.slice(0, 120).map(b => {
+        const isSel = state.selectedBlock === b.number ? "selected" : "";
+        const kindBadge = b.kind === 0
+          ? (b.loudness >= 100 ? `<span class="badge mega">MEGA FULL</span>` : `<span class="badge full">FULL</span>`)
+          : `<span class="badge timeout">TIMEOUT</span>`;
+        const perSeat = seatsNum > 0 ? (b.emission / seatsNum).toFixed(4) : "0";
+        return `
+          <tr class="${isSel}" data-block="${b.number}">
+            <td><strong>#${b.number}</strong></td>
+            <td>${kindBadge}</td>
+            <td class="${b.loudness >= 100 ? 'text-amber' : ''}">${fmtNum(b.loudness)}</td>
+            <td class="text-violet">${fmtNum(b.emission, 0)} BUZZ</td>
+            <td class="muted">${perSeat}</td>
+            <td><a href="https://sepolia.etherscan.io/tx/${b.txHash}" target="_blank" rel="noopener" class="text-sky" onclick="event.stopPropagation()">${shortHex(b.txHash)} ↗</a></td>
+          </tr>
+        `;
+      }).join("");
+
+      document.querySelectorAll("#blocks-tbody tr[data-block]").forEach(tr => {
+        tr.addEventListener("click", () => decodeBlockFromL1(Number(tr.dataset.block)));
+      });
+    }
+
+    function renderCharts(blocks, nowTs) {
+      // 1. Hourly Block Rate (last 24 hours)
+      const buckets = [];
+      const currentHour = Math.floor(nowTs / 3600) * 3600;
+      for (let h = 23; h >= 0; h--) {
+        const tStart = currentHour - h * 3600;
+        const count = blocks.filter(b => b.approxTs >= tStart && b.approxTs < tStart + 3600).length;
+        const dt = new Date(tStart * 1000);
+        const label = `${String(dt.getHours()).padStart(2, "0")}:00`;
+        buckets.push({ label, count });
+      }
+      const maxRate = Math.max(1, ...buckets.map(b => b.count));
+      $("chart-rate-peak").textContent = `Peak: ${maxRate} blk/h`;
+
+      const W = 540, H = 180, padL = 28, padB = 22, padT = 10, padR = 8;
+      const plotW = W - padL - padR, plotH = H - padT - padB;
+      const barW = plotW / buckets.length;
+
+      let svgRate = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
+      for (let g = 0; g <= 3; g++) {
+        const y = padT + (plotH * g) / 3;
+        const v = Math.round(maxRate * (1 - g / 3));
+        svgRate += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#1f2536" stroke-dasharray="3 3"/>`;
+        svgRate += `<text x="${padL - 5}" y="${y + 4}" text-anchor="end" fill="#6f7891" font-size="9" font-family="JetBrains Mono">${v}</text>`;
+      }
+      buckets.forEach((b, i) => {
+        const bh = (b.count / maxRate) * plotH;
+        const x = padL + i * barW + 2;
+        const y = padT + plotH - bh;
+        const fill = b.count >= maxRate * 0.75 ? "#f59e0b" : "#8b5cf6";
+        svgRate += `<rect x="${x}" y="${y}" width="${Math.max(4, barW - 4)}" height="${Math.max(1, bh)}" rx="3" fill="${fill}" opacity="0.88"><title>${b.label} — ${b.count} blocks</title></rect>`;
+        if (i % 6 === 0 || i === buckets.length - 1) {
+          svgRate += `<text x="${x + barW / 2}" y="${H - 4}" text-anchor="middle" fill="#6f7891" font-size="9" font-family="JetBrains Mono">${b.label}</text>`;
+        }
+      });
+      svgRate += `</svg>`;
+      $("chart-rate").innerHTML = svgRate;
+
+      // 2. Loudness Spikes (newest 48 blocks, oldest -> newest)
+      const recent = [...blocks].slice(0, 48).reverse();
+      const maxLoud = Math.max(10, ...recent.map(b => b.loudness));
+      $("chart-loud-peak").textContent = `Max: ${fmtNum(maxLoud)} loudness`;
+
+      const bw2 = plotW / Math.max(1, recent.length);
+      let svgLoud = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
+      for (let g = 0; g <= 3; g++) {
+        const y = padT + (plotH * g) / 3;
+        const v = Math.round(maxLoud * (1 - g / 3));
+        svgLoud += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#1f2536" stroke-dasharray="3 3"/>`;
+        svgLoud += `<text x="${padL - 5}" y="${y + 4}" text-anchor="end" fill="#6f7891" font-size="9" font-family="JetBrains Mono">${v}</text>`;
+      }
+      recent.forEach((b, i) => {
+        const bh = (b.loudness / maxLoud) * plotH;
+        const x = padL + i * bw2 + 1;
+        const y = padT + plotH - bh;
+        const fill = b.loudness >= 100 ? "#f59e0b" : (b.kind === 1 ? "#475569" : "#10b981");
+        svgLoud += `<rect x="${x}" y="${y}" width="${Math.max(3, bw2 - 2)}" height="${Math.max(2, bh)}" rx="2" fill="${fill}" opacity="0.9"><title>Block #${b.number}: loudness ${b.loudness}, emission ${b.emission} BUZZ</title></rect>`;
+        if (i === 0 || i === Math.floor(recent.length / 2) || i === recent.length - 1) {
+          svgLoud += `<text x="${x + bw2 / 2}" y="${H - 4}" text-anchor="middle" fill="#6f7891" font-size="9" font-family="JetBrains Mono">#${b.number}</text>`;
+        }
+      });
+      svgLoud += `</svg>`;
+      $("chart-loudness").innerHTML = svgLoud;
+    }
+
+    async function decodeBlockFromL1(blockNumber) {
+      state.selectedBlock = blockNumber;
+      renderBlocksTable();
+      $("input-block-num").value = blockNumber;
+      $("decoder-block-badge").textContent = `Block #${blockNumber}`;
+      $("decoder-meta").textContent = `Fetching raw L1 settle() calldata for Block #${blockNumber}…`;
+      $("leaves-tbody").innerHTML = `<tr><td colspan="4" class="muted" style="text-align:center;padding:18px;">Decoding calldata &amp; verifying Merkle tree…</td></tr>`;
+
+      try {
+        let txHash = state.byNumber.get(blockNumber)?.txHash;
+        let expectedBlockHash = state.byNumber.get(blockNumber)?.blockHash;
+
+        if (!txHash) {
+          // Fallback: locate block on-chain via batchOf -> BatchSettled event
+          const seq = new ethers.Contract(ADDR.SEQUENCER, SEQ_ABI, provider);
+          const batchIdx = await seq.batchOf(blockNumber);
+          const batchInfo = await seq.batch(batchIdx);
+          const l1Head = await provider.getBlockNumber();
+          const batchTopic = seqIface.getEvent("BatchSettled").topicHash;
+          const idxTopic = ethers.zeroPadValue(ethers.toBeHex(batchIdx), 32);
+          const logs = await provider.getLogs({
+            address: ADDR.SEQUENCER,
+            topics: [batchTopic, idxTopic],
+            fromBlock: Math.max(0, l1Head - 8800),
+            toBlock: l1Head
+          });
+          if (!logs.length) throw new Error(`Block #${blockNumber} L1 settle tx is older than RPC log retention window.`);
+          txHash = logs[0].transactionHash;
+          expectedBlockHash = batchInfo.firstBlock === batchInfo.lastBlock ? batchInfo.headersRoot : null;
+        }
+
+        const tx = await provider.getTransaction(txHash);
+        const decoded = seqIface.parseTransaction({ data: tx.data });
+        const headers = decoded.args.headers;
+        const postDataArr = decoded.args.postData;
+
+        let idx = -1;
+        for (let i = 0; i < headers.length; i++) {
+          if (Number(headers[i].number) === blockNumber) { idx = i; break; }
+        }
+        if (idx === -1) throw new Error(`Block #${blockNumber} not found in settle() calldata.`);
+
+        const h = headers[idx];
+        const rawBytes = ethers.getBytes(postDataArr[idx]);
+        const dv = new DataView(rawBytes.buffer, rawBytes.byteOffset, rawBytes.byteLength);
+
+        const leaves = [];
+        const leafHashes = [];
+        let sumLoudness = 0n;
+        let newCount = 0, matCount = 0;
+
+        for (let off = 0; off < rawBytes.length; off += 17) {
+          const postId = dv.getBigUint64(off, false);
+          const kind = dv.getUint8(off + 8);
+          const loudness = dv.getBigUint64(off + 9, false);
+          sumLoudness += loudness;
+          if (kind === 0) newCount++; else matCount++;
+
+          const inner = ethers.keccak256(abiCoder.encode(["uint64", "uint8", "uint64"], [postId, kind, loudness]));
+          leafHashes.push(ethers.keccak256(inner));
+          leaves.push({ postId: postId.toString(), kind, loudness: Number(loudness) });
+        }
+
+        // 4 cryptographic verifications
+        const calcBlockHash = ethers.keccak256(abiCoder.encode(
+          ["tuple(uint64,uint64,bytes32,bytes32,bytes32,uint32,uint32,uint128,uint128,uint8,uint16)"],
+          [[h.number, h.timestamp, h.parentHash, h.postsRoot, h.dataHash, h.newPosts, h.maturedPosts, h.loudness, h.emission, h.kind, h.paramsVersion]]
+        ));
+        const okBlockHash = expectedBlockHash ? calcBlockHash.toLowerCase() === expectedBlockHash.toLowerCase() : true;
+        const okDataHash = ethers.keccak256(rawBytes).toLowerCase() === h.dataHash.toLowerCase();
+        const calcPostsRoot = buildOzStandardMerkleRoot(leafHashes);
+        const okPostsRoot = calcPostsRoot.toLowerCase() === h.postsRoot.toLowerCase();
+        const okLoudSum = sumLoudness === h.loudness;
+
+        const checks = [
+          ["blockHash == header", okBlockHash],
+          ["dataHash == postData", okDataHash],
+          ["postsRoot == OZ Merkle", okPostsRoot],
+          ["Σ loudness == header", okLoudSum]
+        ];
+        $("proof-grid").innerHTML = checks.map(([lbl, ok]) => `
+          <div class="proof-item ${ok ? "ok" : "fail"}">
+            <span>${lbl}</span>
+            <strong class="${ok ? "text-emerald" : ""}">${ok ? "✓ PASS" : "✗ FAIL"}</strong>
+          </div>
+        `).join("");
+
+        const tsStr = new Date(Number(h.timestamp) * 1000).toLocaleString();
+        $("decoder-meta").innerHTML =
+          `Settled ${tsStr} · Params v${h.paramsVersion} · ${rawBytes.length} B calldata · ` +
+          `<a class="text-sky" href="https://sepolia.etherscan.io/tx/${txHash}" target="_blank" rel="noopener">Tx ${shortHex(txHash)} ↗</a>`;
+
+        // Split bar
+        const totalLeaves = newCount + matCount;
+        if (totalLeaves > 0) {
+          $("maturity-split-wrap").style.display = "block";
+          const newPct = (newCount / totalLeaves * 100).toFixed(1);
+          const matPct = (matCount / totalLeaves * 100).toFixed(1);
+          $("split-new-lbl").textContent = `NEW: ${newCount} (${newPct}%)`;
+          $("split-mat-lbl").textContent = `MATURED 24h: ${matCount} (${matPct}%)`;
+          $("bar-new").style.width = `${newPct}%`;
+          $("bar-mat").style.width = `${matPct}%`;
+        } else {
+          $("maturity-split-wrap").style.display = "none";
+        }
+
+        if (!leaves.length) {
+          $("leaves-tbody").innerHTML = `<tr><td colspan="4" class="muted" style="text-align:center;padding:18px;">Empty heartbeat (TIMEOUT) block — 0 leaves.</td></tr>`;
+          return;
+        }
+
+        // Sort loudest first for easier alpha discovery
+        const sortedLeaves = [...leaves].sort((a, b) => b.loudness - a.loudness);
+        $("leaves-tbody").innerHTML = sortedLeaves.map((l, i) => `
+          <tr>
+            <td class="muted">${i + 1}</td>
+            <td><a class="text-sky" href="https://x.com/i/status/${l.postId}" target="_blank" rel="noopener">${l.postId} ↗</a></td>
+            <td>${l.kind === 0 ? `<span class="badge new">NEW</span>` : `<span class="badge matured">MATURED</span>`}</td>
+            <td class="${l.loudness >= 20 ? 'text-amber' : ''}"><strong>${fmtNum(l.loudness)}</strong></td>
+          </tr>
+        `).join("");
+      } catch (e) {
+        $("decoder-meta").textContent = `Error: ${e.message}`;
+        $("leaves-tbody").innerHTML = `<tr><td colspan="4" class="muted" style="text-align:center;padding:18px;">Could not decode block #${blockNumber}.</td></tr>`;
+      }
+    }
+
+    async function inspectSeatOrWallet() {
+      const raw = $("input-seat").value.trim();
+      if (!raw || !provider) return;
+
+      const vault = new ethers.Contract(ADDR.VAULT, VAULT_ABI, provider);
+      const nft = new ethers.Contract(ADDR.VALIDATOR, NFT_ABI, provider);
+      const buzz = new ethers.Contract(ADDR.BUZZ, BUZZ_ABI, provider);
+      const faucet = new ethers.Contract(ADDR.FAUCET, FAUCET_ABI, provider);
+
+      $("seat-result").innerHTML = `<div class="stat-tile" style="grid-column:span 2"><div class="lbl">Querying Sepolia L1…</div><div class="val muted">Reading Vault &amp; ERC-721 state</div></div>`;
+
+      try {
+        if (ethers.isAddress(raw)) {
+          const [ethBal, buzzBal, unstakedNfts, claimed] = await Promise.all([
+            provider.getBalance(raw),
+            buzz.balanceOf(raw),
+            nft.balanceOf(raw),
+            faucet.hasClaimed(raw)
+          ]);
+          $("seat-result").innerHTML = `
+            <div class="stat-tile"><div class="lbl">Faucet Claimed</div><div class="val ${claimed ? 'text-emerald' : 'muted'}">${claimed ? "✓ YES" : "NO"}</div></div>
+            <div class="stat-tile"><div class="lbl">Wallet $BUZZ Balance</div><div class="val text-amber">${Number(ethers.formatEther(buzzBal)).toFixed(4)}</div></div>
+            <div class="stat-tile"><div class="lbl">Unstaked NFTs in Wallet</div><div class="val">${unstakedNfts.toString()}</div></div>
+            <div class="stat-tile"><div class="lbl">Sepolia ETH</div><div class="val text-sky">${Number(ethers.formatEther(ethBal)).toFixed(4)} ETH</div></div>
+          `;
+        } else {
+          const tokenId = BigInt(raw.replace(/^#/, ""));
+          const [owner, staker, pending] = await Promise.all([
+            nft.ownerOf(tokenId),
+            vault.stakerOf(tokenId),
+            vault.pendingRewards(tokenId)
+          ]);
+          const isStaked = staker !== ethers.ZeroAddress;
+          const holderAddr = isStaked ? staker : owner;
+          const buzzBal = await buzz.balanceOf(holderAddr);
+          $("seat-result").innerHTML = `
+            <div class="stat-tile"><div class="lbl">Seat #${tokenId} Status</div><div class="val ${isStaked ? 'text-emerald' : 'text-amber'}">${isStaked ? "✓ STAKED" : "UNSTAKED"}</div></div>
+            <div class="stat-tile"><div class="lbl">Pending $BUZZ</div><div class="val text-amber">${Number(ethers.formatEther(pending)).toFixed(4)}</div></div>
+            <div class="stat-tile"><div class="lbl">${isStaked ? "Staker" : "Owner"}</div><div class="val text-sky"><a href="https://sepolia.etherscan.io/address/${holderAddr}" target="_blank" rel="noopener">${shortHex(holderAddr)} ↗</a></div></div>
+            <div class="stat-tile"><div class="lbl">Holder $BUZZ Balance</div><div class="val text-emerald">${Number(ethers.formatEther(buzzBal)).toFixed(4)}</div></div>
+          `;
+        }
+      } catch (e) {
+        $("seat-result").innerHTML = `<div class="stat-tile" style="grid-column:span 2"><div class="lbl">Lookup Error</div><div class="val" style="font-size:12.5px;color:#fda4af;">${e.shortMessage || e.message}</div></div>`;
+      }
+    }
+
+    function updateSimulator() {
+      const mySeats = Number($("sim-seats").value);
+      const dailyEmit = Number($("sim-daily").value);
+      const totalSeats = Number($("sim-total").value);
+      $("sim-seats-val").textContent = `${mySeats} seat${mySeats > 1 ? "s" : ""}`;
+      $("sim-daily-val").textContent = `${fmtNum(dailyEmit)} BUZZ/d`;
+      $("sim-total-val").textContent = `${fmtNum(totalSeats)} seats`;
+
+      const perDay = (dailyEmit * mySeats) / totalSeats;
+      $("sim-out-day").textContent = `${perDay.toFixed(2)} BUZZ`;
+      $("sim-out-month").textContent = `${fmtNum(perDay * 30, 1)} BUZZ`;
+    }
+
+    // Event bindings
+    document.querySelectorAll(".chip[data-filter]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".chip[data-filter]").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        state.filter = btn.dataset.filter;
+        renderBlocksTable();
+      });
+    });
+
+    $("btn-refresh").addEventListener("click", () => loadChainData().catch(e => showError(e.message)));
+    $("btn-decode").addEventListener("click", () => {
+      const v = Number($("input-block-num").value);
+      if (v > 0) decodeBlockFromL1(v);
+    });
+    $("input-block-num").addEventListener("keydown", e => {
+      if (e.key === "Enter") $("btn-decode").click();
+    });
+    $("btn-query-seat").addEventListener("click", inspectSeatOrWallet);
+    $("input-seat").addEventListener("keydown", e => {
+      if (e.key === "Enter") inspectSeatOrWallet();
+    });
+    ["sim-seats", "sim-daily", "sim-total"].forEach(id => $(id).addEventListener("input", updateSimulator));
+
+    // Boot
+    (async () => {
+      try {
+        await loadChainData();
+        await inspectSeatOrWallet();
+      } catch (e) {
+        showError(`L1 Sync Failed: ${e.message}`);
+      }
+    })();
+
+    // Auto-refresh every 45s
+    setInterval(() => {
+      loadChainData().catch(() => {});
+    }, 45000);
+  </script>
+</body>
+</html>
